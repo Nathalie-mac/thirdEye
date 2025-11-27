@@ -47,4 +47,9 @@ public class TrackedObject {
         return result;
     }
 
+    @Override
+    public String toString() {
+        return String.format("Новый объект: id: %s, тип: %s, \nкоординаты верхнего левого края: x=%f, y=%f, \n координаты нижнего правого края: x=%f, y=%f\n", id, className, topLeft.x, topLeft.y, bottomRight.x, bottomRight.y);
+    }
+
 }

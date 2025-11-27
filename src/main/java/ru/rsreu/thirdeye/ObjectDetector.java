@@ -21,6 +21,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class ObjectDetector {
+    private NewObjectCalback newObjectCalback;
+
+    public void setNewObjectCalback(NewObjectCalback calback) {
+        this.newObjectCalback = calback;
+    }
 
     public interface FrameUpdateCallBack{
         void onFrameProcessed(Mat frame);
@@ -210,7 +215,7 @@ public class ObjectDetector {
     }
 
     //Возвращаем объект из списка распознанных объектов или возвращаем новый созданный
-    private static TrackedObject findObject(List<TrackedObject> trackedObjects, Point objectCenter, String className, Point topLeft, Point bottomRight) {
+    private  TrackedObject findObject(List<TrackedObject> trackedObjects, Point objectCenter, String className, Point topLeft, Point bottomRight) {
         TrackedObject obj = null;
         boolean found = false;
         for (TrackedObject trackedObject : trackedObjects) {
@@ -231,6 +236,9 @@ public class ObjectDetector {
             TrackedObject trackedObject = new TrackedObject(className, objectCenter, uniqueId, topLeft, bottomRight);
             trackedObjects.add(trackedObject);
             obj = trackedObject;
+            if (newObjectCalback != null){
+                newObjectCalback.onNewObjectDetected(trackedObject);
+            }
             System.out.println(obj);
         }
         return obj;

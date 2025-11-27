@@ -41,8 +41,8 @@ public class Main  extends Application {
     public static Net network;
     public static int amountOfOutputLayers;
     public static List<String> outputLayersNames;
-    @FXML
-    private ImageView imageView;
+
+    @FXML private ImageView imageView;
     @FXML private Button cameraButton;
 
     @Override
@@ -111,6 +111,8 @@ public class Main  extends Application {
             Services.formObjectTypeCounter(labels, objectTypeCount);
             objectDetector.trackingCounter = 0;
 
+            objectDetector.setNewObjectCalback(this::handleNewObject);
+
             capture.open(0); //Открываем камеру для захвата изображения
             if (!capture.isOpened()) {
                 System.err.println("Не удалось открыть камеру");
@@ -126,6 +128,10 @@ public class Main  extends Application {
             objectDetector.stopDetection();
             capture.release();
         }
+    }
+
+    private void handleNewObject(TrackedObject trackedObject) {
+        System.out.println(trackedObject);
     }
 
     private void onFrameReady(Mat frame) {
