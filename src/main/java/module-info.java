@@ -12,6 +12,7 @@ module ru.rsreu.thirdeye {
     requires com.almasb.fxgl.all;
     requires opencv;
     requires javafx.swing;
+    requires java.net.http;
 
     opens ru.rsreu.thirdeye to javafx.fxml;
     exports ru.rsreu.thirdeye;
