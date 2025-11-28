@@ -132,6 +132,7 @@ public class Main  extends Application {
 
     private void handleNewObject(TrackedObject trackedObject) {
         System.out.println(trackedObject);
+        //TODO: Вызов ручки на мой сервис
     }
 
     private void onFrameReady(Mat frame) {
