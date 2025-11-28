@@ -6,7 +6,6 @@ import javafx.embed.swing.SwingFXUtils;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.image.ImageView;
@@ -20,7 +19,6 @@ import org.opencv.dnn.Dnn;
 import org.opencv.dnn.Net;
 import org.opencv.videoio.VideoCapture;
 
-import java.io.IOException;
 import java.util.*;
 
 public class Main  extends Application {
@@ -33,7 +31,8 @@ public class Main  extends Application {
     //private volatile boolean running = false;
 
     private Set<Integer> countedObjectIds; //
-    private Map<String, Integer> objectTypeCount; //
+    private Map<String, Integer> objectTypeCount;
+    private Set<TrackedObject> detectedObjects = new HashSet<>();//
 
     public static List<String> labels;
     public static int amountOfClasses;
@@ -111,7 +110,7 @@ public class Main  extends Application {
             Services.formObjectTypeCounter(labels, objectTypeCount);
             objectDetector.trackingCounter = 0;
 
-            objectDetector.setNewObjectCalback(this::handleNewObject);
+            objectDetector.setNewObjectCallback(this::handleNewObject);
 
             capture.open(0); //Открываем камеру для захвата изображения
             if (!capture.isOpened()) {
@@ -131,7 +130,21 @@ public class Main  extends Application {
     }
 
     private void handleNewObject(TrackedObject trackedObject) {
-        System.out.println(trackedObject);
+        boolean isNew = detectedObjects.add(trackedObject);
+        if (!isNew) return;
+
+        double x = trackedObject.getCenter().x;
+        double y = trackedObject.getCenter().y;
+
+        int col = (x < ObjectDetector.CADR_WIDTH / 3.0) ? 0 : (x < 2 * ObjectDetector.CADR_WIDTH / 3.0) ? 1 : 2;
+        int row = (y < ObjectDetector.CADR_HEIGHT / 3.0) ? 0 : (y < 2 * ObjectDetector.CADR_HEIGHT / 3.0) ? 1 : 2;
+
+        String position = getPositionDescription(row, col);
+
+        String message = position + " " + trackedObject.getClassName();
+
+        System.out.println("📍 " + message);
+
     }
 
     private void onFrameReady(Mat frame) {
@@ -141,5 +154,30 @@ public class Main  extends Application {
             }
             frame.release();
         });
+    }
+
+    private String getPositionDescription(int row, int col) {
+        switch (row) {
+            case 0: // верхний ряд
+                switch (col) {
+                    case 0: return "слева сверху";
+                    case 1: return "прямо сверху";
+                    case 2: return "справа сверху";
+                }
+            case 1: // средний ряд
+                switch (col) {
+                    case 0: return "слева";
+                    case 1: return "по центру";
+                    case 2: return "справа";
+                }
+            case 2: // нижний ряд
+                switch (col) {
+                    case 0: return "слева снизу";
+                    case 1: return "прямо снизу";
+                    case 2: return "справа снизу";
+                }
+            default:
+                return "неизвестно";
+        }
     }
 }
