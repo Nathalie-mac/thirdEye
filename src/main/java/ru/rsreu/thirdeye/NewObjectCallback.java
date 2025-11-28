@@ -1,7 +1,7 @@
 package ru.rsreu.thirdeye;
 
 @FunctionalInterface
-public interface NewObjectCalback {
+public interface NewObjectCallback {
     void onNewObjectDetected(TrackedObject obj);
 
 }

@@ -8,10 +8,6 @@ import org.opencv.core.*;
 import org.opencv.dnn.Dnn;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.videoio.VideoCapture;
-import org.opencv.core.*;
-import org.opencv.dnn.Dnn;
-import org.opencv.imgproc.Imgproc;
-import org.opencv.videoio.VideoCapture;
 
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
@@ -21,10 +17,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class ObjectDetector {
-    private NewObjectCalback newObjectCalback;
+    public static final int CADR_HEIGHT = 192;
+    public static final int CADR_WIDTH = 192;
+    private NewObjectCallback newObjectCallback;
+    private List<TrackedObject> trackedObjects = new ArrayList<>();
 
-    public void setNewObjectCalback(NewObjectCalback calback) {
-        this.newObjectCalback = calback;
+    public void setNewObjectCallback(NewObjectCallback calback) {
+        this.newObjectCallback = calback;
     }
 
     public interface FrameUpdateCallBack{
@@ -37,7 +36,7 @@ public class ObjectDetector {
         if (timer != null) {
             stopDetection();
         }
-        List<TrackedObject> trackedObjects = new ArrayList<>();
+        trackedObjects.clear();
         timer = Executors.newSingleThreadScheduledExecutor();
         // Запускаем таймер для захвата кадров каждые 33 мс (приблизительно 30 кадров в секунду)
         timer.scheduleAtFixedRate(() -> {
@@ -55,7 +54,10 @@ public class ObjectDetector {
                         height = frame.height();
                         width = frame.width();
 
-                        Imgproc.resize(frame, frameResized, new Size(192, 192));
+                        Imgproc.resize(frame, frameResized, new Size(CADR_WIDTH,
+                                CADR_HEIGHT));
+
+
 
                         //Рисуем контрольную рамку
 //                        Point controlFrameTopLeft = new Point(width*0.6, 0);
@@ -215,33 +217,31 @@ public class ObjectDetector {
     }
 
     //Возвращаем объект из списка распознанных объектов или возвращаем новый созданный
-    private  TrackedObject findObject(List<TrackedObject> trackedObjects, Point objectCenter, String className, Point topLeft, Point bottomRight) {
-        TrackedObject obj = null;
-        boolean found = false;
+    private TrackedObject findObject(List<TrackedObject> trackedObjects, Point objectCenter,
+                                     String className, Point topLeft, Point bottomRight) {
         for (TrackedObject trackedObject : trackedObjects) {
-            double dx = objectCenter.x - trackedObject.getCenter().x;
-            double dy = objectCenter.y - trackedObject.getCenter().y;
-            double distance = Math.sqrt(dx * dx + dy * dy);
+            if (trackedObject.getClassName().equals(className)) {
+                double dx = objectCenter.x - trackedObject.getCenter().x;
+                double dy = objectCenter.y - trackedObject.getCenter().y;
+                double distance = Math.sqrt(dx * dx + dy * dy);
 
-            // Если нашли в списке объект с таким классом и в пределах допустимого расстояния, считаем его тем же объектом
-            if (trackedObject.getClassName().equals(className) &&
-                    distance < 40) { // 40 пикселей допустимое расстояние
-                found = true;
-                obj = trackedObject;
+                if (distance < 50) {
+                    trackedObject.setCenter(objectCenter);
+                    return trackedObject;
+                }
             }
         }
-        if (!found) {
-            // Создаем новый объект для отслеживания
-            int uniqueId = trackedObjects.size();
-            TrackedObject trackedObject = new TrackedObject(className, objectCenter, uniqueId, topLeft, bottomRight);
-            trackedObjects.add(trackedObject);
-            obj = trackedObject;
-            if (newObjectCalback != null){
-                newObjectCalback.onNewObjectDetected(trackedObject);
-            }
-            System.out.println(obj);
+
+        int uniqueId = trackedObjects.size();
+        TrackedObject newObj = new TrackedObject(className, objectCenter, uniqueId, topLeft, bottomRight, System.currentTimeMillis());
+        trackedObjects.add(newObj);
+
+        if (newObjectCallback != null) {
+            newObjectCallback.onNewObjectDetected(newObj);
         }
-        return obj;
+        System.out.println(newObj);
+
+        return newObj;
     }
 
     // Останавливаем таймер при прекращении захвата видеопотока
