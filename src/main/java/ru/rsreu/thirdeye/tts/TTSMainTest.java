@@ -6,7 +6,7 @@ public class TTSMainTest {
 
         ttsClient.synthesizeSpeechToResources("Мой друг долбаёб как же я ебал это всё", "output.wav");
 
-        //AudioPlayer.playWavFile("output.wav");
+        AudioPlayer.playWavFile("output.wav");
         AudioPlayer.playWavFromResourcesAlt("/output.wav");
     }
 }

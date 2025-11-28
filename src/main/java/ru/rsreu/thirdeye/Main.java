@@ -6,7 +6,6 @@ import javafx.embed.swing.SwingFXUtils;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.image.ImageView;
@@ -19,12 +18,14 @@ import org.opencv.core.Scalar;
 import org.opencv.dnn.Dnn;
 import org.opencv.dnn.Net;
 import org.opencv.videoio.VideoCapture;
+import ru.rsreu.thirdeye.tts.AudioPlayer;
+import ru.rsreu.thirdeye.tts.TTSClient;
 
-import java.io.IOException;
 import java.util.*;
 
-public class Main  extends Application {
+public class Main extends Application {
 
+    public static final String AUDIOFILE_PATH = "C:\\\\Users\\\\natul\\\\Documents\\\\NewJavaWorkspace\\\\thirdEye\\\\src\\\\main\\\\resources\\\\output.wav";
     private Thread detectionThread = null;
 
     private volatile boolean cameraActive = false; // Флаг для состояния камеры
@@ -35,6 +36,7 @@ public class Main  extends Application {
     private Set<Integer> countedObjectIds; //
     private Map<String, Integer> objectTypeCount;
     private Set<TrackedObject> detectedObjects = new HashSet<>();//
+    private static TTSClient ttsClient;
 
     public static List<String> labels;
     public static int amountOfClasses;
@@ -43,8 +45,10 @@ public class Main  extends Application {
     public static int amountOfOutputLayers;
     public static List<String> outputLayersNames;
 
-    @FXML private ImageView imageView;
-    @FXML private Button cameraButton;
+    @FXML
+    private ImageView imageView;
+    @FXML
+    private Button cameraButton;
 
     @Override
     public void start(Stage primaryStage) {
@@ -67,10 +71,8 @@ public class Main  extends Application {
     }
 
 
-
-
-
     public static void main(String[] args) {
+        ttsClient = new TTSClient("https://semionmur-tts.hf.space/tts/getAudio");
         // Загружаем нативную библиотеку OpenCV
         System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
         String path = "src/main/resources/ru/rsreu/thirdeye/coco.names";
@@ -80,7 +82,7 @@ public class Main  extends Application {
         //генерируем цвета рамок для каждого класса
         Random rnd = new Random();
         colors = new Scalar[amountOfClasses];
-        for (int i = 0; i<amountOfClasses; i++){
+        for (int i = 0; i < amountOfClasses; i++) {
             colors[i] = new Scalar(rnd.nextInt(256), rnd.nextInt(256), rnd.nextInt(256));
         }
 
@@ -89,13 +91,13 @@ public class Main  extends Application {
         String weightsPath = "src/main/resources/ru/rsreu/thirdeye/yolov4-tiny.weights";
         network = Dnn.readNetFromDarknet(cfgPath, weightsPath);
 
-        List<String>  namesOfLayers = network.getLayerNames();
+        List<String> namesOfLayers = network.getLayerNames();
 
         MatOfInt outputLayersIndices = network.getUnconnectedOutLayers();
         amountOfOutputLayers = outputLayersIndices.toArray().length;
         outputLayersNames = new ArrayList();
-        for (int i =0; i<amountOfOutputLayers; i++){
-            outputLayersNames.add(namesOfLayers.get(outputLayersIndices.toList().get(i)-1));
+        for (int i = 0; i < amountOfOutputLayers; i++) {
+            outputLayersNames.add(namesOfLayers.get(outputLayersIndices.toList().get(i) - 1));
         }
 
         launch(args);
@@ -112,7 +114,7 @@ public class Main  extends Application {
             Services.formObjectTypeCounter(labels, objectTypeCount);
             objectDetector.trackingCounter = 0;
 
-            objectDetector.setNewObjectCalback(this::handleNewObject);
+            objectDetector.setNewObjectCallback(this::handleNewObject);
 
             capture.open(0); //Открываем камеру для захвата изображения
             if (!capture.isOpened()) {
@@ -146,12 +148,15 @@ public class Main  extends Application {
         String message = position + " " + trackedObject.getClassName();
 
         System.out.println("📍 " + message);
-
+//        Platform.runLater(()->{
+        ttsClient.synthesizeSpeechToResources(message, "output.wav");
+        AudioPlayer.playWavFile(AUDIOFILE_PATH);
+//        });
     }
 
     private void onFrameReady(Mat frame) {
-        Platform.runLater(()->{
-            if (cameraActive){
+        Platform.runLater(() -> {
+            if (cameraActive) {
                 imageView.setImage(SwingFXUtils.toFXImage(ObjectDetector.matToBufferedImage(frame), null));
             }
             frame.release();
@@ -162,21 +167,30 @@ public class Main  extends Application {
         switch (row) {
             case 0: // верхний ряд
                 switch (col) {
-                    case 0: return "слева сверху";
-                    case 1: return "прямо сверху";
-                    case 2: return "справа сверху";
+                    case 0:
+                        return "слева сверху";
+                    case 1:
+                        return "прямо сверху";
+                    case 2:
+                        return "справа сверху";
                 }
             case 1: // средний ряд
                 switch (col) {
-                    case 0: return "слева";
-                    case 1: return "по центру";
-                    case 2: return "справа";
+                    case 0:
+                        return "слева";
+                    case 1:
+                        return "по центру";
+                    case 2:
+                        return "справа";
                 }
             case 2: // нижний ряд
                 switch (col) {
-                    case 0: return "слева снизу";
-                    case 1: return "прямо снизу";
-                    case 2: return "справа снизу";
+                    case 0:
+                        return "слева снизу";
+                    case 1:
+                        return "прямо снизу";
+                    case 2:
+                        return "справа снизу";
                 }
             default:
                 return "неизвестно";
